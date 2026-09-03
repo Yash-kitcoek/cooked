@@ -1,0 +1,5 @@
+[33ma64162a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m file problem resolve v03  Added by Eklavya.
+[33m8fa4000[m file problem resolve v02  Added by Eklavya.
+[33m860786c[m feat: enforce academic profile completion for grievance submission and enhance MyProfile UI with search and status filtering
+[33m4b95b3e[m feat: implement core database schema models and initial API structural components
+[33md69d487[m implement FastAPI backend structure, authentication, user management, and student profile endpoints

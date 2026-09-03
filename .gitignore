@@ -1,0 +1,12 @@
+.env
+api/.env
+api/.venv/
+api/test-uploads/
+web/node_modules/
+web/dist/
+__pycache__/
+.pytest_cache/
+node_modules/
+# Next.js build output
+.next/
+out/

@@ -1,0 +1,15 @@
+[1mdiff --git a/docker-compose.yml b/docker-compose.yml[m
+[1mindex 2fa696d..087dab0 100644[m
+[1m--- a/docker-compose.yml[m
+[1m+++ b/docker-compose.yml[m
+[36m@@ -2,6 +2,10 @@[m [mservices:[m
+   postgres:[m
+     image: pgvector/pgvector:pg16[m
+     env_file: ./api/.env[m
+[32m+[m[32m    environment:[m
+[32m+[m[32m      POSTGRES_USER: complaints[m
+[32m+[m[32m      POSTGRES_PASSWORD: complaints-local-password[m
+[32m+[m[32m      POSTGRES_DB: complaints[m
+     ports:[m
+       - "5432:5432"[m
+     volumes:[m

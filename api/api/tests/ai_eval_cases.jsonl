@@ -1,0 +1,5 @@
+{"id":"eval-001","text":"Room fan has been broken for three days and no one fixed it.","expected_priority":"high","expected_department":"Hostel"}
+{"id":"eval-002","text":"Student reports harassment near laboratory corridor.","expected_priority":"urgent","expected_department":"Security"}
+{"id":"eval-003","text":"Fee receipt not reflected before exam form deadline.","expected_priority":"high","expected_department":"Accounts"}
+{"id":"eval-004","text":"Library card renewal request pending.","expected_priority":"normal","expected_department":"Library"}
+{"id":"eval-005","text":"Duplicate: room fan broken in hostel block A.","expected_duplicate_theme":"hostel fan broken"}

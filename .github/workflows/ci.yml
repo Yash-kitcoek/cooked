@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: complaints_test
+          POSTGRES_USER: complaints
+          POSTGRES_PASSWORD: complaints
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U complaints -d complaints_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    defaults:
+      run:
+        working-directory: api/api
+    env:
+      DATABASE_URL: postgresql+psycopg://complaints:complaints@localhost:5432/complaints_test
+      JWT_SECRET: ci-only-secret-not-used-in-any-deployment-0123456789
+      REDIS_URL: redis://localhost:6379/0
+      ADMIN_EMAIL: admin@example.edu
+      ADMIN_PASSWORD: changeme123
+      ALLOWED_ORIGINS: http://localhost:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: alembic upgrade head
+      - run: pytest
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run build

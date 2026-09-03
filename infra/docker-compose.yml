@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: complaint
+      POSTGRES_PASSWORD: complaint
+      POSTGRES_DB: complaint_platform
+    ports: ["5432:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U complaint -d complaint_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports: ["6379:6379"]
+    command: redis-server --appendonly yes
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: { context: ../api/api }
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://complaint:complaint@postgres:5432/complaint_platform
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://localhost:8000/ready')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  worker:
+    build: { context: ../api/api }
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://complaint:complaint@postgres:5432/complaint_platform
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET before starting the stack}
+    command: rq worker --url redis://redis:6379/0 default
+    depends_on:
+      api: { condition: service_healthy }
+
+  web:
+    build: { context: ../web }
+    ports: ["3000:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+
+volumes:
+  postgres_data:
+  redis_data:

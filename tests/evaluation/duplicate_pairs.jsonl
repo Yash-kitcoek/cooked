@@ -1,0 +1,3 @@
+{"first":"No water in Hostel Block A since 8 AM.","second":"Hostel Block A water supply has been unavailable since morning.","relation":"DUPLICATE"}
+{"first":"No water in Hostel Block A since 8 AM.","second":"Water supply failed in Hostel Block B.","relation":"RELATED"}
+{"first":"No water in Hostel Block A since 8 AM.","second":"Hall ticket has not been issued for tomorrow's exam.","relation":"NEW"}
