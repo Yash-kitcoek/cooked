@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Activity,
   ClipboardList,
@@ -14,6 +14,7 @@ import {
   Sparkles,
   Users,
   X,
+  Home,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './admin.css';
@@ -44,13 +45,13 @@ export function AdminLayout() {
         {mobileOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
       <aside className={`admin-sidebar ${mobileOpen ? 'is-open' : ''}`}>
-        <div className="admin-brand">
+        <Link to="/" className="admin-brand" style={{ textDecoration: 'none' }} title="Resolve Home">
           <div className="admin-brand-mark"><Sparkles size={18} /></div>
           <div>
             <strong>Resolve</strong>
             <span>Governance OS</span>
           </div>
-        </div>
+        </Link>
 
         <div className="admin-user-card">
           <div className="admin-avatar"><ShieldCheck size={18} /></div>
@@ -87,6 +88,10 @@ export function AdminLayout() {
             <div className="admin-top-title">Institutional grievance control center</div>
           </div>
           <div className="admin-top-actions">
+            <Link to="/" className="admin-home-btn" title="Back to Home Page">
+              <Home size={15} />
+              <span>Home</span>
+            </Link>
             <NavLink to="/admin/complaints" className="admin-top-link"><FileText size={15} /> Review complaints</NavLink>
             <div className="admin-top-profile">
               <span className="mini-avatar">{(session?.username || 'A').slice(0, 1).toUpperCase()}</span>

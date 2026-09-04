@@ -299,7 +299,8 @@ def report_existing_problem(
         description=group.description,
         status=group.status,
         priority=group.priority,
-        sla_due_at=now,
+        # sla_due_at uses the model default (72 h from now) — do NOT set it to
+        # `now` here, that would immediately breach SLA for joined complaints.
     )
     db.add(complaint)
     db.flush()

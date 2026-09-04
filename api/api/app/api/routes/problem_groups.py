@@ -17,12 +17,14 @@ from app.models import (
 )
 from app.rbac import require_role
 from app.schemas import (
+    ProblemBriefOut,
     ProblemComplaintOut,
     ProblemGroupDetailOut,
     ProblemGroupSummaryOut,
     ProblemStudentOut,
     SolutionIn,
 )
+from app.services.brief_service import generate_cluster_brief
 from app.services.problem_grouping import get_group_for_department, recalculate_group, resolve_problem_group
 
 router = APIRouter(prefix="/staff/problems", tags=["department problems"])
@@ -117,16 +119,21 @@ def list_problem_groups(
             id=str(group.id),
             problem_code=group.problem_code,
             title=group.title,
-            description=group.description,
+            description=group.description or "",
             department=group.department,
             complaint_count=group.complaint_count,
             affected_users=group.affected_users,
             priority=group.priority,
             status=group.status,
             category=group.category,
+            location=group.location,
             urgency_score=group.urgency_score,
             impact_score=group.impact_score,
             priority_score=group.priority_score,
+            is_emerging=group.is_emerging,
+            emerging_flagged_at=group.emerging_flagged_at,
+            generated_brief=group.generated_brief,
+            generated_brief_at=group.generated_brief_at,
             solution_text=group.solution_text,
             solution_at=group.solution_at,
             created_at=group.created_at,
@@ -176,22 +183,50 @@ def get_problem_group(
         id=str(group.id),
         problem_code=group.problem_code,
         title=group.title,
-        description=group.description,
+        description=group.description or "",
         department=group.department,
         complaint_count=group.complaint_count,
         affected_users=group.affected_users,
         priority=group.priority,
         status=group.status,
         category=group.category,
+        location=group.location,
         urgency_score=group.urgency_score,
         impact_score=group.impact_score,
         priority_score=group.priority_score,
+        is_emerging=group.is_emerging,
+        emerging_flagged_at=group.emerging_flagged_at,
+        generated_brief=group.generated_brief,
+        generated_brief_at=group.generated_brief_at,
         solution_text=group.solution_text,
         solution_at=group.solution_at,
         created_at=group.created_at,
         updated_at=group.updated_at,
         students=list(students_by_id.values()),
         complaints=[ProblemComplaintOut.model_validate(c) for c in complaints]
+    )
+
+
+@router.post("/{problem_id}/brief", response_model=ProblemBriefOut)
+def generate_problem_brief(
+    problem_id: UUID,
+    force: bool = Query(default=True),
+    current: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ProblemBriefOut:
+    """Generate or regenerate an AI action brief for this problem cluster."""
+    group = db.query(ProblemGroup).filter(ProblemGroup.id == problem_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="problem not found")
+
+    _check_access(current, group)
+    brief = generate_cluster_brief(problem_id, db, force=force)
+    db.refresh(group)
+
+    return ProblemBriefOut(
+        id=str(group.id),
+        generated_brief=group.generated_brief,
+        generated_brief_at=group.generated_brief_at,
     )
 
 

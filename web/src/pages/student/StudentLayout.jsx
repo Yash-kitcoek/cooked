@@ -1,6 +1,6 @@
 import React from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, FilePlus2, GraduationCap, LayoutDashboard, LogOut, Menu, Sparkles, User, X, Users } from 'lucide-react';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Activity, Bell, ClipboardList, FilePlus2, GraduationCap, LayoutDashboard, LogOut, Menu, Sparkles, User, X, Users, Home } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import '../admin/admin.css';
 import './student.css';
@@ -26,13 +26,13 @@ export function StudentLayout() {
         {open ? <X size={20} /> : <Menu size={20} />}
       </button>
       <aside className={`admin-sidebar ${open ? 'is-open' : ''}`}>
-        <div className="admin-brand">
+        <Link to="/" className="admin-brand" style={{ textDecoration: 'none' }} title="Resolve Home">
           <div className="admin-brand-mark"><Sparkles size={18} /></div>
           <div>
             <strong>Resolve</strong>
             <span>Student Portal</span>
           </div>
-        </div>
+        </Link>
         <div className="admin-user-card">
           <div className="admin-avatar"><GraduationCap size={18} /></div>
           <div className="admin-user-copy">
@@ -73,9 +73,15 @@ export function StudentLayout() {
             <div className="admin-kicker">STUDENT PORTAL / 2026</div>
             <div className="admin-top-title">Your complaints, progress and resolutions</div>
           </div>
-          <div className="admin-top-profile">
-            <span className="mini-avatar">{name[0].toUpperCase()}</span>
-            <span>{name}</span>
+          <div className="admin-top-actions">
+            <Link to="/" className="admin-home-btn" title="Back to Home Page">
+              <Home size={15} />
+              <span>Home</span>
+            </Link>
+            <div className="admin-top-profile">
+              <span className="mini-avatar">{name[0].toUpperCase()}</span>
+              <span>{name}</span>
+            </div>
           </div>
         </header>
         <div className="admin-content">

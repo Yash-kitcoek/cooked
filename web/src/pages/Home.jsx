@@ -101,6 +101,9 @@ export function Home() {
           <a href="#prioritization" style={{ color: '#6B6F76', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Prioritization</a>
           <a href="#routing" style={{ color: '#6B6F76', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Smart Routing</a>
           <a href="#analytics" style={{ color: '#6B6F76', textDecoration: 'none', fontSize: '13px', fontWeight: 600 }}>Analytics</a>
+          <Link to="/transparency" style={{ color: '#5B4FE9', textDecoration: 'none', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ShieldCheck size={14} /> View Departmental Dashboard
+          </Link>
         </div>
 
         {/* Right CTA */}
@@ -1238,6 +1241,9 @@ export function Home() {
             <div>
               <div style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', color: '#5B4FE9', textTransform: 'uppercase', marginBottom: '14px' }}>Institutional</div>
               <div style={{ display: 'grid', gap: '10px', fontSize: '13px' }}>
+                <Link to="/transparency" style={{ color: '#5B4FE9', textDecoration: 'none', fontWeight: 700 }}>
+                  View Departmental Dashboard →
+                </Link>
                 <span style={{ color: '#6B6F76' }}>SIH 2026 Submission</span>
                 <span style={{ color: '#6B6F76' }}>FastAPI + PostgreSQL + pgvector</span>
                 <span style={{ color: '#6B6F76' }}>Qwen-2.5-7B AI Pipeline</span>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Lock, Compass, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Compass, Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Login() {
@@ -18,7 +18,10 @@ export function Login() {
     if (!token || !session?.role) return;
     if (session.role === 'admin') navigate('/admin', { replace: true });
     else if (session.role === 'staff') navigate('/staff', { replace: true });
-    else if (session.role === 'student') navigate('/student', { replace: true });
+    else if (session.role === 'student') {
+      if (!session.profile_completed) navigate('/profile/setup', { replace: true });
+      else navigate('/student', { replace: true });
+    }
   }, [token, session, navigate]);
 
   async function login(event) {
@@ -48,7 +51,12 @@ export function Login() {
       setToken(accessToken);
       setSession(normalizedSession);
       setMessage('Welcome back to Resolve!');
-      navigate(role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/student');
+      
+      if (role === 'student' && !normalizedSession.profile_completed) {
+        navigate('/profile/setup', { replace: true });
+      } else {
+        navigate(role === 'admin' ? '/admin' : role === 'staff' ? '/staff' : '/student', { replace: true });
+      }
     } catch (err) {
       setErrorMessage(err.message || 'Invalid username or password');
     } finally {
@@ -66,8 +74,62 @@ export function Login() {
         justifyContent: 'center',
         padding: '24px 16px',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
+      {/* Top Left Navigation Buttons */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 10,
+        }}
+      >
+        <Link
+          to="/"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#ffffff',
+            color: '#0F0F14',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 700,
+            textDecoration: 'none',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.06)',
+          }}
+        >
+          <ArrowLeft size={16} /> Home
+        </Link>
+
+        <Link
+          to="/transparency"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#ffffff',
+            color: '#5B4FE9',
+            padding: '10px 18px',
+            borderRadius: '12px',
+            fontSize: '13px',
+            fontWeight: 700,
+            textDecoration: 'none',
+            border: '1px solid rgba(91, 79, 233, 0.2)',
+            boxShadow: '0 4px 14px rgba(91, 79, 233, 0.08)',
+          }}
+        >
+          <ShieldCheck size={16} /> Departmental Dashboard
+        </Link>
+      </div>
+
       <div
         style={{
           maxWidth: '440px',
@@ -267,6 +329,12 @@ export function Login() {
             Sign up for free
           </Link>
         </p>
+
+        <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9' }}>
+          <Link to="/transparency" style={{ color: '#5B4FE9', fontSize: '13px', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <ShieldCheck size={14} /> View Departmental Dashboard →
+          </Link>
+        </div>
       </div>
     </main>
   );

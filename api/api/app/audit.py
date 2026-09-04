@@ -13,3 +13,4 @@ def write_audit(db: Session, actor: User | None, action: str, entity_type: str, 
             event_metadata=metadata or {},
         )
     )
+

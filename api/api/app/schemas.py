@@ -12,6 +12,7 @@ class TokenOut(BaseModel):
     email: str | None = None
     username: str | None = None
     department: str | None = None
+    profile_completed: bool = False
 
 
 class LoginIn(BaseModel):
@@ -36,6 +37,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=8)
     role: Role = Role.student
     department: str | None = None
+    profile_completed: bool = False
 
 
 class UserOut(BaseModel):
@@ -44,6 +46,7 @@ class UserOut(BaseModel):
     username: str | None = None
     role: str
     department: str | None
+    profile_completed: bool = False
     student_profile: "StudentProfileOut | None" = None
 
     model_config = {"from_attributes": True}
@@ -96,7 +99,6 @@ class SimilarProblemOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-
 class ComplaintTransition(BaseModel):
     status: ComplaintStatus
     note: str | None = None
@@ -126,10 +128,7 @@ class ComplaintOut(BaseModel):
     source: str
     affected_users: int
     assigned_to_id: int | None
-
-    # FIX: database problem_group_id is PostgreSQL UUID
     problem_group_id: UUID | None = None
-
     sla_due_at: datetime
     duplicate_of_id: str | None
     created_at: datetime
@@ -217,6 +216,7 @@ class ProblemGroupSummaryOut(BaseModel):
     description: str
     department: str
     category: str | None = None
+    location: str | None = None
     complaint_count: int
     affected_users: int
     priority: str
@@ -224,12 +224,79 @@ class ProblemGroupSummaryOut(BaseModel):
     impact_score: float
     priority_score: float
     status: str
+    is_emerging: bool = False
+    emerging_flagged_at: datetime | None = None
+    generated_brief: str | None = None
+    generated_brief_at: datetime | None = None
     solution_text: str | None = None
     solution_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ProblemBriefOut(BaseModel):
+    id: str
+    generated_brief: str | None = None
+    generated_brief_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+class EmergingAlertOut(BaseModel):
+    id: str
+    problem_code: str
+    title: str
+    department: str
+    category: str
+    location: str
+    complaint_count: int
+    velocity: float
+    first_complaint_time: datetime
+    latest_complaint_time: datetime | None = None
+    emerging_flagged_at: datetime | None = None
+
+    model_config = {"from_attributes": True}
+
+
+# ── Public / Transparency Dashboard ───────────────────────────────────────────
+# PRIVACY FENCE: These schemas are returned by the public GET /public/stats
+# endpoint. They MUST NEVER contain:
+#   - complaint titles, descriptions, or any free-text field
+#   - student_id, email, username, PRN, division, roll_no, or any user identifier
+#   - staff names, solution_by_id, or any personnel field
+#   - storage_path, attachment URLs, or any complaint ID
+#   - any field that could identify an individual complaint or complainant
+# Only counts, averages, rates, and department/category labels are allowed.
+
+
+class DeptStatsOut(BaseModel):
+    name: str
+    open_count: int
+    resolved_count: int
+    avg_resolution_hours: float | None  # None if no resolved complaints yet
+    sla_breach_rate: float              # 0.0 – 1.0 fraction of active complaints past SLA
+
+
+class TrendingCategoryOut(BaseModel):
+    category: str
+    count_last_7_days: int
+
+
+class OverallStatsOut(BaseModel):
+    total_open: int
+    total_resolved_this_month: int
+    avg_resolution_hours: float | None
+
+
+class PublicStatsOut(BaseModel):
+    departments: list[DeptStatsOut]
+    trending_categories: list[TrendingCategoryOut]
+    overall: OverallStatsOut
+    last_updated: datetime
+
+
 
 
 class ProblemGroupDetailOut(ProblemGroupSummaryOut):

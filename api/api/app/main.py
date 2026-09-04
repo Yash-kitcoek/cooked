@@ -15,7 +15,7 @@ from app.api.dependencies import get_current_user
 from app.idempotency import get_existing, request_hash, store_response
 from app.pipeline import analyze_complaint
 from app.core.logging import configure_logging
-from app.models import Attachment, AuditLog, Comment, Complaint, ComplaintStatus, DepartmentPolicy, Message, Notification, ProblemGroup, Role, StudentProfile, User, utcnow
+from app.models import Attachment, AuditLog, Comment, Complaint, ComplaintStatus, DepartmentPolicy, Message, Notification, Priority, ProblemGroup, Role, StudentProfile, User, utcnow
 from app.rate_limit import RateLimiter
 from app.rbac import enforce_view_complaint, require_role
 from app.schemas import (
@@ -51,9 +51,12 @@ from app.schemas import (
 from app.core.security import create_access_token, hash_password, verify_password
 from app.workers.queue import enqueue_ai_processing
 from app.workers.sla_tasks import check_slas
+from app.workers.emerging_tasks import check_emerging_clusters
 from app.services.intelligent_intake import build_payload
+from app.api.routes.alerts import router as alerts_router
 from app.api.routes.problem_groups import router as problem_groups_router
 from app.api.routes.student_problems import router as student_problems_router
+from app.api.routes.public import router as public_router
 from app.services.problem_grouping import assign_complaint_to_group, recalculate_group, resolve_problem_group
 from app.pipeline.priority import apply_priority
 from app.pipeline.classifier import classify_complaint
@@ -93,8 +96,10 @@ app.add_middleware(
 )
 
 
+app.include_router(alerts_router)
 app.include_router(problem_groups_router)
 app.include_router(student_problems_router)
+app.include_router(public_router)  # public — no auth required, see app/api/routes/public.py
 
 
 @app.on_event("startup")
@@ -116,6 +121,7 @@ def bootstrap_admin(db: Session) -> None:
                 hashed_password=hash_password(settings.admin_password),
                 role=Role.admin.value,
                 department=None,
+                profile_completed=True,
             )
         )
         db.commit()
@@ -149,6 +155,7 @@ def bootstrap_staff(db: Session) -> None:
                     hashed_password=hash_password("staff@123"),
                     role=Role.staff.value,
                     department=dept,
+                    profile_completed=True,
                 )
             )
     db.commit()
@@ -199,7 +206,7 @@ def login(payload: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
     token = create_access_token(str(user.id), user.role, user.department)
     write_audit(db, user, "user.login", "user", str(user.id), {"email": user.email, "username": user.username, "role": user.role})
     db.commit()
-    return TokenOut(access_token=token, role=user.role, email=user.email, username=user.username, department=user.department)
+    return TokenOut(access_token=token, role=user.role, email=user.email, username=user.username, department=user.department, profile_completed=user.profile_completed)
 
 
 @app.get("/auth/me", response_model=UserOut)
@@ -310,6 +317,7 @@ def create_staff(payload: UserCreate, current: User = Depends(get_current_user),
         hashed_password=hash_password(payload.password),
         role=Role.staff.value,
         department=payload.department,
+        profile_completed=True,
     )
     db.add(user)
     db.flush()
@@ -330,7 +338,7 @@ def list_audit_logs(current: User = Depends(get_current_user), db: Session = Dep
 @app.get("/students/me/profile", response_model=StudentProfileOut)
 def get_my_profile(current: User = Depends(get_current_user), db: Session = Depends(get_db)) -> StudentProfile:
     """Get the authenticated student's own academic profile."""
-    require_role(current, Role.student)
+    require_role(current, Role.student, check_profile=False)
     profile = db.query(StudentProfile).filter(StudentProfile.user_id == current.id).one_or_none()
     if not profile:
         raise HTTPException(status_code=404, detail="No academic profile found. Please fill in your details.")
@@ -344,7 +352,7 @@ def upsert_my_profile(
     db: Session = Depends(get_db),
 ) -> StudentProfile:
     """Create or update the authenticated student's academic profile."""
-    require_role(current, Role.student)
+    require_role(current, Role.student, check_profile=False)
 
     # PRN uniqueness check — reject if another user owns this PRN
     prn_conflict = (
@@ -378,6 +386,9 @@ def upsert_my_profile(
             contact_number=payload.contact_number,
         )
         db.add(profile)
+        
+    current.profile_completed = True
+    db.add(current)
 
     db.flush()
     write_audit(db, current, "student.profile.upsert", "student_profile", str(current.id), {"prn": payload.prn_number})
@@ -442,6 +453,7 @@ def create_user(payload: UserCreate, current: User = Depends(get_current_user), 
         hashed_password=hash_password(payload.password),
         role=payload.role.value,
         department=payload.department,
+        profile_completed=(payload.role.value != Role.student.value),
     )
     db.add(user)
     db.flush()
@@ -1112,6 +1124,13 @@ def nudge_department(
 def run_sla_check(current: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     require_role(current, Role.admin)
     return {"escalated": check_slas(db)}
+
+
+@app.post("/admin/emerging-check")
+def run_emerging_check(current: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    require_role(current, Role.admin)
+    flagged = check_emerging_clusters(db)
+    return {"flagged": len(flagged)}
 
 
 # ── Comment / Message endpoints ──────────────────────────────────────────────

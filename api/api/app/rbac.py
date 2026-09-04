@@ -3,9 +3,11 @@ from fastapi import HTTPException, status
 from app.models import Complaint, Role, User
 
 
-def require_role(user: User, *roles: Role) -> None:
+def require_role(user: User, *roles: Role, check_profile: bool = True) -> None:
     if user.role not in {role.value for role in roles}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="insufficient permissions")
+    if check_profile and not user.profile_completed:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="PROFILE_INCOMPLETE")
 
 
 def can_view_complaint(user: User, complaint: Complaint) -> bool:

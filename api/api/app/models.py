@@ -1,4 +1,5 @@
 import enum
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, Uuid, UniqueConstraint
@@ -62,6 +63,14 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def default_sla_due() -> datetime:
     return utcnow() + timedelta(hours=48)
 
@@ -75,6 +84,7 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(32), nullable=False)
     department: Mapped[str | None] = mapped_column(String(120), index=True)
+    profile_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, nullable=False)
 
@@ -136,6 +146,10 @@ class ProblemGroup(Base):
     impact_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     priority_score: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
     status: Mapped[str] = mapped_column(String(32), default=ComplaintStatus.open.value, nullable=False)
+    is_emerging: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    emerging_flagged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    generated_brief: Mapped[str | None] = mapped_column(Text, nullable=True)
+    generated_brief_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     solution_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     solution_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     solution_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -154,6 +168,41 @@ class ProblemGroup(Base):
         if self.complaints:
             return self.complaints[0].category
         return None
+
+    @property
+    def earliest_complaint_time(self) -> datetime:
+        if self.complaints:
+            times = [ensure_utc(c.created_at) for c in self.complaints if c.created_at is not None]
+            if times:
+                return min(times)
+        return ensure_utc(self.created_at) or utcnow()
+
+    @property
+    def latest_complaint_time(self) -> datetime:
+        if self.complaints:
+            times = [ensure_utc(c.created_at) for c in self.complaints if c.created_at is not None]
+            if times:
+                return max(times)
+        return ensure_utc(self.created_at) or utcnow()
+
+    @property
+    def location(self) -> str:
+        candidates = [self.title or "", self.description or ""]
+        if self.complaints:
+            for c in self.complaints[:10]:
+                if c.subcategory:
+                    candidates.append(c.subcategory)
+                if c.title:
+                    candidates.append(c.title)
+        combined = " ".join(candidates)
+        match = re.search(r'\b((?:Hostel\s+)?Block\s+[A-Za-z0-9]+|Room\s+[A-Za-z0-9]+)\b', combined, re.IGNORECASE)
+        if match:
+            block_text = match.group(1).strip()
+            if self.department and self.department.lower() not in block_text.lower():
+                return f"{self.department} - {block_text}"
+            return block_text
+        return self.department or "Campus"
+
     solution_by: Mapped["User | None"] = relationship(foreign_keys=[solution_by_id])
 
 

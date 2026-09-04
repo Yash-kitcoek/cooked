@@ -1,0 +1,8 @@
+{
+  "python.analysis.extraPaths": [
+    "./api/api"
+  ],
+  "python.autoComplete.extraPaths": [
+    "./api/api"
+  ]
+}

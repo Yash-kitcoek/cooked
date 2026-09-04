@@ -30,36 +30,135 @@ _NORMALIZATION = {
     "absent": "no",
     "missing": "no",
     "shortage": "no",
+
+    # Failure / availability
+    "broken": "failed",
+    "damaged": "failed",
+    "malfunctioning": "failed",
+    "functioning": "working",
+    "operational": "working",
+
+    # Water terminology
     "supply": "water",
     "supplies": "water",
-    "washroom": "bathroom",
-    "washrooms": "bathroom",
+    "drinking": "water",
+    "dispenser": "cooler",
+
+    # Student terminology
     "residents": "student",
     "students": "student",
+
+    # Sanitation
+    "washroom": "bathroom",
+    "washrooms": "bathroom",
 }
 
 
+_PHRASE_NORMALIZATION = (
+    (r"\bnot\s+working\b", "failed"),
+    (r"\bnot\s+functioning\b", "failed"),
+    (r"\bnot\s+operational\b", "failed"),
+    (r"\bdoes\s+not\s+work\b", "failed"),
+    (r"\bdoesn't\s+work\b", "failed"),
+
+    # Equivalent water-facility expressions
+    (r"\bwater\s+cooler\b", "watercooler"),
+    (r"\bdrinking\s+water\s+facility\b", "watercooler"),
+    (r"\bdrinking\s+water\s+cooler\b", "watercooler"),
+    (r"\bwater\s+dispenser\b", "watercooler"),
+)
+
+
+_STOPWORDS = {
+    "the", "and", "for", "has", "have", "been", "near", "beside",
+    "several", "days", "cannot", "use", "used", "with", "from",
+    "this", "that", "there", "are", "was", "were",
+}
+
+
+def _normalized_text(text: str) -> str:
+    value = text.lower()
+
+    for pattern, replacement in _PHRASE_NORMALIZATION:
+        value = re.sub(pattern, f" {replacement} ", value)
+
+    return value
+
+
 def _tokens(text: str) -> set[str]:
+    normalized = _normalized_text(text)
+
     words = {
         word
-        for word in re.findall(r"[a-z0-9]+", text.lower())
-        if len(word) > 2
+        for word in re.findall(r"[a-z0-9]+", normalized)
+        if len(word) > 2 and word not in _STOPWORDS
     }
+
     return {_NORMALIZATION.get(word, word) for word in words}
+
+
+def _issue_tokens(text: str) -> set[str]:
+    """Extract concrete problem-state concepts from the original text."""
+    normalized = re.sub(r"\s+", " ", text.lower()).strip()
+    issues = set()
+
+    # Failure / non-functional equipment.
+    if (
+        re.search(r"\bnot\s+working\b", normalized)
+        or re.search(r"\bnot\s+functioning\b", normalized)
+        or re.search(r"\bnot\s+operational\b", normalized)
+        or re.search(r"\bdoes\s+not\s+work\b", normalized)
+        or re.search(r"\bdoesn't\s+work\b", normalized)
+        or re.search(r"\bbroken\b", normalized)
+        or re.search(r"\bmalfunctioning\b", normalized)
+        or re.search(r"\bdamaged\b", normalized)
+        or re.search(r"\bfailed\b", normalized)
+    ):
+        issues.add("failure")
+
+    # Leakage is deliberately a separate issue from equipment failure.
+    if re.search(r"\b(leak|leaks|leakage|leaking)\b", normalized):
+        issues.add("leakage")
+
+    if re.search(r"\b(slow|slowly|lag|lagging)\b", normalized):
+        issues.add("slow")
+
+    if re.search(r"\b(dirty|unclean|contaminated)\b", normalized):
+        issues.add("quality")
+
+    return issues
 
 
 def problem_similarity(left: str, right: str) -> float:
     """Return a stable 0..1 similarity score.
 
-    Token overlap carries most of the score; sequence similarity catches
-    reordered/near-identical phrases. This is a fallback until semantic
-    embeddings are enabled.
+    Combines normalized lexical similarity with problem-state agreement.
+    Different concrete issue types are deliberately prevented from becoming
+    strong matches merely because they share generic words such as "water".
     """
     a = _tokens(left)
     b = _tokens(right)
+
     jaccard = len(a & b) / len(a | b) if a and b else 0.0
-    sequence = SequenceMatcher(None, left.lower(), right.lower()).ratio()
-    return round(0.80 * jaccard + 0.20 * sequence, 4)
+
+    sequence = SequenceMatcher(
+        None,
+        _normalized_text(left),
+        _normalized_text(right),
+    ).ratio()
+
+    score = 0.80 * jaccard + 0.20 * sequence
+
+    left_issues = _issue_tokens(left)
+    right_issues = _issue_tokens(right)
+
+    if left_issues and right_issues:
+        if left_issues & right_issues:
+            score += 0.20
+        elif left_issues.isdisjoint(right_issues):
+            score *= 0.55
+
+    return round(min(1.0, score), 4)
 
 
 def _priority_rank(value: str) -> int:

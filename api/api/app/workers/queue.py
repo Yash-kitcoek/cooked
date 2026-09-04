@@ -18,3 +18,8 @@ def enqueue_ai_processing(complaint_id: str) -> None:
 
 def enqueue_sla_check() -> None:
     get_queue().enqueue("app.workers.sla_tasks.check_slas", job_timeout=120)
+
+
+def enqueue_emerging_check() -> None:
+    get_queue().enqueue("app.workers.emerging_tasks.check_emerging_clusters", job_timeout=120)
+

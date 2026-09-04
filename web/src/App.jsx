@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Home } from './pages/Home';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
+import { ProfileSetup } from './pages/ProfileSetup';
 import { AdminLayout } from './pages/admin/AdminLayout';
 import { StudentLayout } from './pages/student/StudentLayout';
 import { StudentHome } from './pages/student/StudentHome';
@@ -28,7 +29,9 @@ import { StaffLayout } from './pages/staff/StaffLayout';
 import { StaffHome } from './pages/staff/StaffHome';
 import { StaffProblems } from './pages/staff/StaffProblems';
 import { StaffProblemDetail } from './pages/staff/StaffProblemDetail';
+import { StaffProblemIntelligence } from './pages/staff/StaffProblemIntelligence';
 import { StaffComplaints } from './pages/staff/StaffComplaints';
+import { PublicDashboard } from './pages/PublicDashboard';
 import { CheckCircle2, LogOut, Info, AlertTriangle, X } from 'lucide-react';
 import './styles.css';
 
@@ -72,6 +75,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/profile/setup" element={<ProtectedRoute role="student"><ProfileSetup /></ProtectedRoute>} />
 
           <Route path="/admin" element={<ProtectedRoute role="admin"><AdminLayout /></ProtectedRoute>}>
             <Route index element={<AdminHome />} />
@@ -88,6 +92,7 @@ export function App() {
           <Route path="/staff" element={<ProtectedRoute role="staff"><StaffLayout /></ProtectedRoute>}>
             <Route index element={<StaffHome />} />
             <Route path="problems" element={<StaffProblems />} />
+            <Route path="problems/:id/intelligence" element={<StaffProblemIntelligence />} />
             <Route path="problems/:id" element={<StaffProblemDetail />} />
             <Route path="complaints" element={<StaffComplaints />} />
           </Route>
@@ -102,6 +107,10 @@ export function App() {
             <Route path="profile" element={<StudentProfile />} />
             <Route path="notifications" element={<StudentNotifications />} />
           </Route>
+
+          {/* Public route — no auth guard, accessible to anyone */}
+          <Route path="/transparency" element={<PublicDashboard />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         <ToastContainer />

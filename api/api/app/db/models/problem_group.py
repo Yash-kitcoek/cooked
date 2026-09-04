@@ -1,7 +1,7 @@
 from uuid import uuid4
 from datetime import datetime
 
-from sqlalchemy import Column, String, Integer, DateTime, JSON
+from sqlalchemy import Boolean, Column, String, Integer, DateTime, JSON, Text
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -21,6 +21,10 @@ class ProblemGroup(Base):
     complaint_count = Column(Integer, default=1)
     priority = Column(String, default="LOW")
     status = Column(String, default="OPEN")
+    is_emerging = Column(Boolean, default=False, nullable=False)
+    emerging_flagged_at = Column(DateTime(timezone=True), nullable=True)
+    generated_brief = Column(Text, nullable=True)
+    generated_brief_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

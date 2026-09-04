@@ -25,10 +25,10 @@ TestingSessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=Fals
 def db() -> Generator[Session, None, None]:
     Base.metadata.create_all(bind=engine)
     session = TestingSessionLocal()
-    u1 = User(email="student@example.edu", username="student", hashed_password=hash_password("password123"), role=Role.student.value, department=None)
-    u2 = User(email="other@example.edu", username="other", hashed_password=hash_password("password123"), role=Role.student.value, department=None)
-    u3 = User(email="hostel@example.edu", username="hostel", hashed_password=hash_password("password123"), role=Role.staff.value, department="Hostel")
-    u4 = User(email="admin@example.edu", username="admin", hashed_password=hash_password("password123"), role=Role.admin.value, department=None)
+    u1 = User(email="student@example.edu", username="student", hashed_password=hash_password("password123"), role=Role.student.value, department=None, profile_completed=True)
+    u2 = User(email="other@example.edu", username="other", hashed_password=hash_password("password123"), role=Role.student.value, department=None, profile_completed=True)
+    u3 = User(email="hostel@example.edu", username="hostel", hashed_password=hash_password("password123"), role=Role.staff.value, department="Hostel", profile_completed=True)
+    u4 = User(email="admin@example.edu", username="admin", hashed_password=hash_password("password123"), role=Role.admin.value, department=None, profile_completed=True)
     session.add_all([u1, u2, u3, u4])
     session.flush()
     session.add_all([
